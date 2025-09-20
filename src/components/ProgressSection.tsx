@@ -112,8 +112,9 @@ export default function ProgressSection({
                   High-Performance Generation
                 </h4>
                 <p className="text-sm text-blue-700 mt-1">
-                  Balanced performance: Processing {(5000).toLocaleString()}{" "}
-                  addresses per batch with UI responsiveness. The more specific
+                  Optimized for background operation: Processing{" "}
+                  {(5000).toLocaleString()} addresses per batch. Works
+                  efficiently even when window is minimized. The more specific
                   your requirements, the longer it may take to find matching
                   addresses.
                 </p>

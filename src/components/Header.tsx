@@ -1,4 +1,4 @@
-import { Shield, Zap } from 'lucide-react'
+import { Shield, Zap } from "lucide-react";
 
 export default function Header() {
   return (
@@ -9,17 +9,18 @@ export default function Header() {
           <Zap className="w-6 h-6 text-yellow-500 absolute -top-1 -right-1" />
         </div>
       </div>
-      
+
       <div className="space-y-2">
         <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
           Ethereum Address Generator
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Generate secure Ethereum addresses with custom prefixes and suffixes. 
-          All operations are performed locally in your browser for maximum security.
+          Generate secure Ethereum addresses with custom prefixes and suffixes.
+          All operations are performed locally in your browser for maximum
+          security.
         </p>
       </div>
-      
+
       <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -35,5 +36,5 @@ export default function Header() {
         </div>
       </div>
     </div>
-  )
+  );
 }

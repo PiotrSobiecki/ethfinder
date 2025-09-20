@@ -211,7 +211,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
                 },
               }));
 
-              // Yield control to browser for UI updates
+              // Yield control to browser - reduced frequency for background performance
               await new Promise((resolve) => setTimeout(resolve, 0));
             }
           } catch (error) {
@@ -227,8 +227,10 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
 
         updateProgress(found, config.count, checked);
 
-        // Always yield control to keep UI responsive
-        await new Promise((resolve) => setTimeout(resolve, 1));
+        // Yield control less frequently for better background performance
+        if (checked % 10000 === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+        }
       }
 
       // Clear interval

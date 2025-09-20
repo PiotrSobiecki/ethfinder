@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import GeneratorForm from "@/components/GeneratorForm";
 import ProgressSection from "@/components/ProgressSection";
 import ResultsSection from "@/components/ResultsSection";
@@ -35,32 +36,36 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="space-y-8">
-        <Header />
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
+        <div className="space-y-8">
+          <Header />
 
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <GeneratorForm
-            onStartGeneration={handleStartGeneration}
-            isGenerating={isGenerating}
-          />
-
-          {isGenerating && (
-            <ProgressSection progress={progress} onStop={stopGeneration} />
-          )}
-
-          {results.length > 0 && (
-            <ResultsSection
-              results={results}
-              onDownload={downloadResults}
-              outputMode={config.outputMode}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <GeneratorForm
+              onStartGeneration={handleStartGeneration}
+              isGenerating={isGenerating}
             />
-          )}
-        </div>
-      </div>
 
-      {/* Toast container at bottom */}
-      <ToastContainer toasts={toasts} onClose={removeToast} />
-    </main>
+            {isGenerating && (
+              <ProgressSection progress={progress} onStop={stopGeneration} />
+            )}
+
+            {results.length > 0 && (
+              <ResultsSection
+                results={results}
+                onDownload={downloadResults}
+                outputMode={config.outputMode}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Toast container at bottom */}
+        <ToastContainer toasts={toasts} onClose={removeToast} />
+      </main>
+
+      <Footer />
+    </div>
   );
 }
