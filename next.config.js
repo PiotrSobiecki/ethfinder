@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
   typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete even if
@@ -15,11 +12,11 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   // Enable static exports for deployment
-  output: 'export',
+  output: "export",
   trailingSlash: true,
   images: {
-    unoptimized: true
-  }
-}
+    unoptimized: true,
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
