@@ -17,6 +17,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Explicit webpack configuration for path resolution
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@": require("path").resolve(__dirname, "src"),
+    };
+    return config;
+  },
 };
 
 module.exports = nextConfig;
