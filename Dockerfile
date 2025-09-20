@@ -3,7 +3,6 @@ FROM node:18-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -17,25 +16,36 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Build and export static files
 RUN npm run build
 
-# Debug: Check if out directory exists and has files
-RUN ls -la /app/out || echo "out directory not found"
+# Debug: Check what was generated
+RUN echo "=== Checking build output ===" && \
+    ls -la /app/ && \
+    echo "=== Checking out directory ===" && \
+    ls -la /app/out/ && \
+    echo "=== Content of out ===" && \
+    find /app/out -type f | head -10
 
-# Production image, copy all the files and run next
+# Production image with nginx
 FROM nginx:alpine AS runner
-WORKDIR /usr/share/nginx/html
+
+# Remove default nginx website
+RUN rm -rf /usr/share/nginx/html/*
 
 # Copy the static export from builder stage
-COPY --from=builder /app/out .
+COPY --from=builder /app/out /usr/share/nginx/html
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Create a simple health check file
+RUN echo "healthy" > /usr/share/nginx/html/health.txt
+
+# Debug: List final contents
+RUN echo "=== Final nginx contents ===" && ls -la /usr/share/nginx/html/
 
 # Expose port 80
 EXPOSE 80
