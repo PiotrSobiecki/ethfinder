@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ethereum Address Generator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 1.1em;
+      }
+
+      .form-section {
+        padding: 40px;
+      }
+
+      .form-group {
+        margin-bottom: 25px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 1.1em;
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .generate-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 16px 32px;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        width: 100%;
+      }
+
+      .generate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .generate-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .progress-section {
+        padding: 0 40px 20px;
+        display: none;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e1e5e9;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      .progress-text {
+        text-align: center;
+        color: #666;
+        font-weight: 500;
+      }
+
+      .results-section {
+        padding: 0 40px 40px;
+        display: none;
+      }
+
+      .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .results-header h3 {
+        color: #333;
+        font-size: 1.4em;
+      }
+
+      .download-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s ease;
+      }
+
+      .download-btn:hover {
+        background: #218838;
+      }
+
+      .results-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        padding: 20px;
+        background: #f8f9fa;
+      }
+
+      .result-item {
+        background: white;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .result-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .result-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+      }
+
+      .result-value {
+        font-family: "Courier New", monospace;
+        background: #f1f3f4;
+        padding: 8px;
+        border-radius: 4px;
+        word-break: break-all;
+        border: 1px solid #e1e5e9;
+      }
+
+      .copy-btn {
+        background: #17a2b8;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        margin-left: 8px;
+        transition: background 0.2s ease;
+      }
+
+      .copy-btn:hover {
+        background: #138496;
+      }
+
+      .stop-btn {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        margin-top: 10px;
+      }
+
+      .stop-btn:hover {
+        background: #c82333;
+      }
+
+      @media (max-width: 768px) {
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .container {
+          margin: 10px;
+        }
+
+        .header,
+        .form-section,
+        .results-section {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔐 Ethereum Address Generator</h1>
+        <p>
+          Generate secure Ethereum addresses with custom prefixes and suffixes
+        </p>
+      </div>
+
+      <div class="form-section">
+        <form id="generatorForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="prefix">Prefix after "0x" (optional):</label>
+              <input type="text" id="prefix" placeholder="e.g. abc123" />
+            </div>
+            <div class="form-group">
+              <label for="suffix">Address suffix (optional):</label>
+              <input type="text" id="suffix" placeholder="e.g. def456" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="count">Number of addresses to generate:</label>
+              <input type="number" id="count" min="1" max="1000" value="1" />
+            </div>
+            <div class="form-group">
+              <label for="outputMode">Display method:</label>
+              <select id="outputMode">
+                <option value="screen">On screen</option>
+                <option value="file">Download as file</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="generate-btn" id="generateBtn">
+            🚀 Start Generation
+          </button>
+        </form>
+      </div>
+
+      <div class="progress-section" id="progressSection">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">
+          Generation in progress...
+        </div>
+        <button class="stop-btn" id="stopBtn">⏹ Stop</button>
+      </div>
+
+      <div class="results-section" id="resultsSection">
+        <div class="results-header">
+          <h3>📊 Generated Addresses</h3>
+          <button class="download-btn" id="downloadBtn">💾 Download All</button>
+        </div>
+        <div class="results-container" id="resultsContainer"></div>
+      </div>
+    </div>
+
+    <!-- Ethereum address generation libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+    <script>
+      class EthereumGenerator {
+        constructor() {
+          this.isGenerating = false;
+          this.shouldStop = false;
+          this.results = [];
+          this.totalChecked = 0;
+          this.startTime = null;
+
+          this.initializeEventListeners();
+        }
+
+        initializeEventListeners() {
+          document
+            .getElementById("generatorForm")
+            .addEventListener("submit", (e) => {
+              e.preventDefault();
+              this.startGeneration();
+            });
+
+          document.getElementById("stopBtn").addEventListener("click", () => {
+            this.stopGeneration();
+          });
+
+          document
+            .getElementById("downloadBtn")
+            .addEventListener("click", () => {
+              this.downloadResults();
+            });
+        }
+
+        async generateEthereumAddress() {
+          try {
+            // Generate random wallet using ethers.js
+            const wallet = ethers.Wallet.createRandom();
+
+            return {
+              address: wallet.address,
+              privateKey: wallet.privateKey.slice(2), // Remove 0x prefix
+            };
+          } catch (error) {
+            console.error("Address generation error:", error);
+            return null;
+          }
+        }
+
+        checkAddressPattern(address, prefix, suffix) {
+          const addressLower = address.toLowerCase();
+          const prefixCheck =
+            !prefix || addressLower.startsWith("0x" + prefix.toLowerCase());
+          const suffixCheck =
+            !suffix || addressLower.endsWith(suffix.toLowerCase());
+          return prefixCheck && suffixCheck;
+        }
+
+        async startGeneration() {
+          if (this.isGenerating) return;
+
+          const prefix = document.getElementById("prefix").value.trim();
+          const suffix = document.getElementById("suffix").value.trim();
+          const count = parseInt(document.getElementById("count").value);
+          const outputMode = document.getElementById("outputMode").value;
+
+          if (count < 1 || count > 1000) {
+            alert("Number of addresses must be between 1 and 1000");
+            return;
+          }
+
+          this.isGenerating = true;
+          this.shouldStop = false;
+          this.results = [];
+          this.totalChecked = 0;
+          this.startTime = Date.now();
+
+          // Show progress section
+          document.getElementById("progressSection").style.display = "block";
+          document.getElementById("resultsSection").style.display = "none";
+          document.getElementById("generateBtn").disabled = true;
+
+          let found = 0;
+          const maxAttempts = 1000000; // Attempt limit
+
+          while (
+            found < count &&
+            this.totalChecked < maxAttempts &&
+            !this.shouldStop
+          ) {
+            const result = await this.generateEthereumAddress();
+
+            if (result) {
+              this.totalChecked++;
+
+              if (this.checkAddressPattern(result.address, prefix, suffix)) {
+                found++;
+                this.results.push({
+                  index: found,
+                  address: result.address,
+                  privateKey: result.privateKey,
+                });
+
+                // Update results in real time
+                this.updateResults();
+              }
+
+              // Update progress
+              this.updateProgress(found, count);
+
+              // Small delay to not block UI
+              if (this.totalChecked % 100 === 0) {
+                await new Promise((resolve) => setTimeout(resolve, 1));
+              }
+            }
+          }
+
+          this.completeGeneration(outputMode);
+        }
+
+        updateProgress(found, total) {
+          const percentage = (found / total) * 100;
+          document.getElementById("progressFill").style.width =
+            percentage + "%";
+
+          const elapsed = Date.now() - this.startTime;
+          const elapsedSeconds = Math.floor(elapsed / 1000);
+          const hours = Math.floor(elapsedSeconds / 3600);
+          const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+          const seconds = elapsedSeconds % 60;
+
+          document.getElementById("progressText").innerHTML = `
+                     Found: ${found}/${total} | 
+                     Checked: ${this.totalChecked.toLocaleString()} addresses | 
+                     Time: ${hours}:${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}
+                 `;
+        }
+
+        updateResults() {
+          const container = document.getElementById("resultsContainer");
+          container.innerHTML = "";
+
+          this.results.forEach((result) => {
+            const item = document.createElement("div");
+            item.className = "result-item";
+            item.innerHTML = `
+                         <div class="result-label">Address ${result.index}:</div>
+                         <div class="result-value">
+                             ${result.address}
+                             <button class="copy-btn" onclick="navigator.clipboard.writeText('${result.address}')">Copy</button>
+                         </div>
+                         <div class="result-label">Private Key ${result.index}:</div>
+                         <div class="result-value">
+                             ${result.privateKey}
+                             <button class="copy-btn" onclick="navigator.clipboard.writeText('${result.privateKey}')">Copy</button>
+                         </div>
+                     `;
+            container.appendChild(item);
+          });
+
+          // Show results section
+          document.getElementById("resultsSection").style.display = "block";
+        }
+
+        stopGeneration() {
+          this.shouldStop = true;
+          this.completeGeneration(document.getElementById("outputMode").value);
+        }
+
+        completeGeneration(outputMode) {
+          this.isGenerating = false;
+          document.getElementById("progressSection").style.display = "none";
+          document.getElementById("generateBtn").disabled = false;
+
+          if (this.results.length > 0) {
+            this.updateResults();
+
+            if (outputMode === "file") {
+              this.downloadResults();
+            }
+          } else {
+            alert("No addresses found matching the criteria.");
+          }
+        }
+
+        downloadResults() {
+          if (this.results.length === 0) return;
+
+          let content = "Ethereum Address Generator - Results\n";
+          content += "====================================\n\n";
+
+          this.results.forEach((result) => {
+            content += `Address ${result.index}: ${result.address}\n`;
+            content += `Private Key ${result.index}: ${result.privateKey}\n\n`;
+          });
+
+          const blob = new Blob([content], { type: "text/plain" });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `ethereum_addresses_${new Date()
+            .toISOString()
+            .slice(0, 19)
+            .replace(/:/g, "-")}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }
+      }
+
+      // Initialize generator after page load
+      document.addEventListener("DOMContentLoaded", () => {
+        new EthereumGenerator();
+      });
+    </script>
+  </body>
+</html>
