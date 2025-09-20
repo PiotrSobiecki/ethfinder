@@ -30,9 +30,9 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy the static export from builder stage
 COPY --from=builder /app/out /usr/share/nginx/html
 
-# Simple nginx config for SPA
+# Simple nginx config for SPA on port 3000
 RUN echo 'server { \
-    listen 80; \
+    listen 3000; \
     root /usr/share/nginx/html; \
     index index.html; \
     location / { \
@@ -44,8 +44,8 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-# Expose port 80
-EXPOSE 80
+# Expose port 3000 to match Railway setting
+EXPOSE 3000
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
