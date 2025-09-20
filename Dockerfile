@@ -6,7 +6,7 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
+# Install dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci
 
@@ -21,14 +21,6 @@ ENV NEXT_TELEMETRY_DISABLED 1
 # Build and export static files
 RUN npm run build
 
-# Debug: Check what was generated
-RUN echo "=== Checking build output ===" && \
-    ls -la /app/ && \
-    echo "=== Checking out directory ===" && \
-    ls -la /app/out/ && \
-    echo "=== Content of out ===" && \
-    find /app/out -type f | head -10
-
 # Production image with nginx
 FROM nginx:alpine AS runner
 
@@ -38,14 +30,19 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy the static export from builder stage
 COPY --from=builder /app/out /usr/share/nginx/html
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
-
-# Create a simple health check file
-RUN echo "healthy" > /usr/share/nginx/html/health.txt
-
-# Debug: List final contents
-RUN echo "=== Final nginx contents ===" && ls -la /usr/share/nginx/html/
+# Simple nginx config for SPA
+RUN echo 'server { \
+    listen 80; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ { \
+        expires 1y; \
+        add_header Cache-Control "public, immutable"; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
