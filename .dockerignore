@@ -19,4 +19,3 @@ node_modules
 
 # Original reference files (not for Next.js build)
 private.ts
-index.html
