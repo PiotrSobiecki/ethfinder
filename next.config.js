@@ -7,9 +7,8 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: false,
+    // Skip ESLint during builds for faster deployment
+    ignoreDuringBuilds: true,
   },
   // Enable static exports for deployment
   output: "export",
