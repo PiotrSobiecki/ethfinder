@@ -12,7 +12,7 @@ const nextConfig = {
   },
   // Enable static exports for deployment
   output: "export",
-  trailingSlash: true,
+  trailingSlash: false,
   images: {
     unoptimized: true,
   },

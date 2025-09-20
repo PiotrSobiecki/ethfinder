@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -23,6 +23,9 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN npm run build
+
+# Debug: Check if out directory exists and has files
+RUN ls -la /app/out || echo "out directory not found"
 
 # Production image, copy all the files and run next
 FROM nginx:alpine AS runner
