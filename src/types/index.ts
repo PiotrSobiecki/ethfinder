@@ -7,7 +7,7 @@ export interface GeneratedAddress {
 export interface GenerationConfig {
   prefix: string;
   suffix: string;
-  count: number;
+  count: number | string;
   outputMode: "screen" | "file";
   ignoreCase: boolean;
 }
@@ -25,4 +25,9 @@ export interface EthereumGeneratorState {
   shouldStop: boolean;
   results: GeneratedAddress[];
   progress: ProgressStats;
+  summary?: {
+    totalChecked: number;
+    totalTime: number;
+    searchCriteria: string;
+  };
 }

@@ -20,7 +20,7 @@ export default function Footer() {
   const copyTipAddress = async () => {
     try {
       await navigator.clipboard.writeText(
-        "0xc0FFEE4fF6d0bE9D45AFa862456f9df95a978271"
+        "0xC0FFEE677C4A1FED131D13a64C60d6D2331de039"
       );
       setCopiedTip(true);
       setTimeout(() => setCopiedTip(false), 2000);
@@ -50,7 +50,7 @@ export default function Footer() {
             <div className="bg-white rounded-lg p-4 border border-amber-200">
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 <div className="font-mono text-sm text-amber-800 bg-amber-100 px-4 py-2 rounded-lg break-all flex-1 min-w-0">
-                  0xc0FFEE4fF6d0bE9D45AFa862456f9df95a978271
+                  0xC0FFEE677C4A1FED131D13a64C60d6D2331de039
                 </div>
                 <button
                   onClick={copyTipAddress}
@@ -71,7 +71,7 @@ export default function Footer() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-3">
-                💡 Notice the address starts with "c0FFEE" - perfect for coffee
+                💡 Notice the address starts with "C0FFEE" - perfect for coffee
                 tips! ☕
               </p>
             </div>
@@ -98,7 +98,7 @@ export default function Footer() {
             {/* Legal links */}
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500">
               <a
-                href="mailto:it@sobiecki.org"
+                href="mailto:contact@ethfinder.org"
                 className="flex items-center space-x-1 hover:text-indigo-600 transition-colors duration-200"
               >
                 <Mail className="w-3 h-3" />

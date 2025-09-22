@@ -112,11 +112,11 @@ export default function ProgressSection({
                   High-Performance Generation
                 </h4>
                 <p className="text-sm text-blue-700 mt-1">
-                  Optimized for background operation: Processing{" "}
-                  {(5000).toLocaleString()} addresses per batch. Works
-                  efficiently even when window is minimized. The more specific
-                  your requirements, the longer it may take to find matching
-                  addresses.
+                  Advanced background optimization: Using MessageChannel and
+                  adaptive batches ({(20000).toLocaleString()} addresses) to
+                  bypass browser throttling when minimized. Detects window state
+                  for optimal performance. The more specific your requirements,
+                  the longer it may take to find matching addresses.
                 </p>
                 {progress.elapsedTime > 0 && progress.checked > 0 && (
                   <p className="text-xs text-blue-600 mt-2">

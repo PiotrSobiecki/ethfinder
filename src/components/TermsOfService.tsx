@@ -130,10 +130,10 @@ export default function TermsOfService({ onClose }: TermsOfServiceProps) {
                 For technical support or questions about these terms, please
                 contact us at:{" "}
                 <a
-                  href="mailto:it@sobiecki.org"
+                  href="mailto:contact@ethfinder.org"
                   className="text-indigo-600 hover:text-indigo-800 font-medium"
                 >
-                  it@sobiecki.org
+                  contact@ethfinder.org
                 </a>
               </p>
             </section>

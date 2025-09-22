@@ -151,10 +151,10 @@ export default function PrivacyPolicy({ onClose }: PrivacyPolicyProps) {
                 If you have any questions about this Privacy Policy, please
                 contact us at:{" "}
                 <a
-                  href="mailto:it@sobiecki.org"
+                  href="mailto:contact@ethfinder.org"
                   className="text-indigo-600 hover:text-indigo-800 font-medium"
                 >
-                  it@sobiecki.org
+                  contact@ethfinder.org
                 </a>
               </p>
             </section>

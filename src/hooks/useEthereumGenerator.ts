@@ -28,11 +28,13 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
       elapsedTime: 0,
       isComplete: false,
     },
+    summary: undefined,
   });
 
   const startTimeRef = useRef<number>(0);
   const intervalRef = useRef<NodeJS.Timeout>();
   const shouldStopRef = useRef<boolean>(false);
+  const stopTimeRef = useRef<number>(0);
 
   const generateEthereumAddress = useCallback((): GeneratedAddress | null => {
     try {
@@ -92,8 +94,15 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
     async (config: GenerationConfig) => {
       if (state.isGenerating) return;
 
+      // Ensure count is a number
+      const countNum =
+        typeof config.count === "number"
+          ? config.count
+          : parseInt(config.count.toString()) || 1;
+
       // Reset state and refs
       shouldStopRef.current = false;
+      stopTimeRef.current = 0;
       setState((prev) => ({
         ...prev,
         isGenerating: true,
@@ -101,7 +110,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
         results: [],
         progress: {
           found: 0,
-          total: config.count,
+          total: countNum,
           checked: 0,
           elapsedTime: 0,
           isComplete: false,
@@ -112,7 +121,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
       const results: GeneratedAddress[] = [];
       let found = 0;
       let checked = 0;
-      const maxAttempts = 10000000; // Higher attempt limit (10M)
+      const maxAttempts = 1000000000; // Higher attempt limit (1B)
 
       // Update progress every second
       intervalRef.current = setInterval(() => {
@@ -128,17 +137,17 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
         }));
       }, 1000);
 
-      // Balanced batch processing for performance + responsiveness
-      const batchSize = 5000; // Balanced batches
+      // Larger batches for better background performance
+      const batchSize = 20000; // Bigger batches, less yielding
 
-      while (found < config.count && checked < maxAttempts) {
+      while (found < countNum && checked < maxAttempts) {
         // Check if should stop
         if (shouldStopRef.current) break;
 
         // Process batch with inline generation for maximum speed
         for (
           let i = 0;
-          i < batchSize && found < config.count && checked < maxAttempts;
+          i < batchSize && found < countNum && checked < maxAttempts;
           i++
         ) {
           try {
@@ -193,7 +202,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
               }));
 
               // Break early if we found enough
-              if (found >= config.count) break;
+              if (found >= countNum) break;
             }
 
             // Update progress less frequently and yield control to UI
@@ -202,7 +211,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
                 ...prev,
                 progress: {
                   found,
-                  total: config.count,
+                  total: countNum,
                   checked,
                   elapsedTime: Math.floor(
                     (Date.now() - startTimeRef.current) / 1000
@@ -211,8 +220,12 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
                 },
               }));
 
-              // Yield control to browser - reduced frequency for background performance
-              await new Promise((resolve) => setTimeout(resolve, 0));
+              // Always yield for UI updates, but use MessageChannel for better background performance
+              await new Promise((resolve) => {
+                const channel = new MessageChannel();
+                channel.port2.onmessage = () => resolve(undefined);
+                channel.port1.postMessage(null);
+              });
             }
           } catch (error) {
             console.error("Address generation error:", error);
@@ -225,13 +238,33 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
           results: [...results],
         }));
 
-        updateProgress(found, config.count, checked);
+        updateProgress(found, countNum, checked);
 
-        // Yield control less frequently for better background performance
-        if (checked % 10000 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 1));
-        }
+        // Use MessageChannel between batches - better for background
+        await new Promise((resolve) => {
+          const channel = new MessageChannel();
+          channel.port2.onmessage = () => resolve(undefined);
+          channel.port1.postMessage(null);
+        });
       }
+
+      // Calculate final elapsed time BEFORE clearing anything
+      const finalElapsedTime = shouldStopRef.current
+        ? stopTimeRef.current // Already calculated in stopGeneration
+        : Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const formatTime = (seconds: number) => {
+        if (seconds < 60) return `${seconds}s`;
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}m ${secs}s`;
+      };
+
+      // Create search criteria description
+      const searchCriteria = `${
+        config.prefix ? `Prefix: "${config.prefix}"` : ""
+      }${config.prefix && config.suffix ? ", " : ""}${
+        config.suffix ? `Suffix: "${config.suffix}"` : ""
+      }${config.ignoreCase ? " (case-insensitive)" : " (case-sensitive)"}`;
 
       // Clear interval
       if (intervalRef.current) {
@@ -246,6 +279,11 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
           ...prev.progress,
           isComplete: true,
         },
+        summary: {
+          totalChecked: checked,
+          totalTime: finalElapsedTime,
+          searchCriteria: searchCriteria,
+        },
       }));
 
       // Auto-download if file mode
@@ -256,19 +294,23 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
       // Show informative message about results
       if (results.length === 0) {
         if (toast) {
+          const action = shouldStopRef.current ? "stopped" : "completed";
           toast.warning(
-            "No addresses found",
-            `No addresses found matching the criteria after checking ${checked.toLocaleString()} addresses.`,
+            `Generation ${action}`,
+            `No addresses found matching the criteria after scanning ${checked.toLocaleString()} addresses in ${formatTime(
+              finalElapsedTime
+            )}.`,
             8000
           );
         }
-      } else if (found < config.count) {
+      } else if (found < countNum) {
         if (toast) {
+          const action = shouldStopRef.current ? "stopped" : "completed";
           toast.info(
-            "Generation completed",
-            `Found ${found} out of ${
-              config.count
-            } requested addresses after checking ${checked.toLocaleString()} addresses.`,
+            `Generation ${action}`,
+            `Found ${found} out of ${countNum} requested addresses after scanning ${checked.toLocaleString()} addresses in ${formatTime(
+              finalElapsedTime
+            )}.`,
             6000
           );
         }
@@ -278,7 +320,9 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
             "Generation completed!",
             `Successfully found ${found} address${
               found > 1 ? "es" : ""
-            } after checking ${checked.toLocaleString()} addresses.`,
+            } after scanning ${checked.toLocaleString()} addresses in ${formatTime(
+              finalElapsedTime
+            )}.`,
             5000
           );
         }
@@ -295,6 +339,16 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
 
   const stopGeneration = useCallback(() => {
     shouldStopRef.current = true;
+
+    // Save both start and stop time for accurate calculation
+    const currentTime = Date.now();
+    if (startTimeRef.current > 0) {
+      // Calculate and store the elapsed time
+      stopTimeRef.current = Math.floor(
+        (currentTime - startTimeRef.current) / 1000
+      );
+    }
+
     setState((prev) => ({
       ...prev,
       shouldStop: true,
@@ -307,6 +361,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
         elapsedTime: 0,
         isComplete: false,
       },
+      summary: undefined, // clear summary
     }));
 
     // Clear timer and reset time reference
@@ -345,6 +400,29 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
 
       let content = "Ethereum Address Generator - Results\n";
       content += "====================================\n\n";
+
+      // Add summary if available
+      if (state.summary) {
+        const formatTime = (seconds: number) => {
+          if (seconds < 60) return `${seconds}s`;
+          const mins = Math.floor(seconds / 60);
+          const secs = seconds % 60;
+          return `${mins}m ${secs}s`;
+        };
+
+        content += "GENERATION SUMMARY\n";
+        content += "------------------\n";
+        content += `Search Criteria: ${state.summary.searchCriteria}\n`;
+        content += `Addresses Found: ${resultsToDownload.length}\n`;
+        content += `Total Addresses Scanned: ${state.summary.totalChecked.toLocaleString()}\n`;
+        content += `Total Time: ${formatTime(state.summary.totalTime)}\n`;
+        content += `Speed: ${Math.round(
+          state.summary.totalChecked / state.summary.totalTime
+        ).toLocaleString()} addresses/second\n`;
+        content += `Generated: ${new Date().toLocaleString()}\n\n`;
+        content += "RESULTS\n";
+        content += "-------\n";
+      }
 
       resultsToDownload.forEach((result) => {
         if (result && result.address && result.privateKey) {

@@ -43,14 +43,23 @@ export default function GeneratorForm({
       return;
     }
 
-    if (config.count < 1 || config.count > 1000) {
+    const countNum =
+      typeof config.count === "number"
+        ? config.count
+        : parseInt(config.count.toString());
+    if (isNaN(countNum) || countNum < 1 || countNum > 1000) {
       alert("Number of addresses must be between 1 and 1000");
       return;
     }
 
     // Wyczyść błędy
     setErrors({});
-    onStartGeneration(config);
+    // Ensure count is a number when submitting
+    const finalConfig = {
+      ...config,
+      count: countNum,
+    };
+    onStartGeneration(finalConfig);
   };
 
   const handleInputChange = (
@@ -200,18 +209,85 @@ export default function GeneratorForm({
             >
               Number of addresses to generate
             </label>
-            <input
-              type="number"
-              id="count"
-              min="1"
-              max="1000"
-              value={config.count}
-              onChange={(e) =>
-                handleInputChange("count", parseInt(e.target.value) || 1)
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-400 text-gray-900 bg-white"
-              disabled={isGenerating}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                id="count"
+                value={config.count}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow empty string during typing
+                  if (value === "") {
+                    handleInputChange("count", "");
+                    return;
+                  }
+                  // Only allow numbers
+                  const numValue = parseInt(value);
+                  if (!isNaN(numValue) && numValue >= 1 && numValue <= 1000) {
+                    handleInputChange("count", numValue);
+                  }
+                }}
+                onBlur={() => {
+                  // If empty or invalid, set to 1
+                  const currentCount =
+                    typeof config.count === "number"
+                      ? config.count
+                      : parseInt(config.count.toString());
+                  if (
+                    config.count === "" ||
+                    isNaN(currentCount) ||
+                    currentCount < 1
+                  ) {
+                    handleInputChange("count", 1);
+                  }
+                }}
+                className="w-full px-4 py-3 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 hover:border-gray-400 text-gray-900 bg-white"
+                disabled={isGenerating}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="1-1000"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentCount =
+                      typeof config.count === "number" ? config.count : 1;
+                    const newValue = Math.min(currentCount + 1, 1000);
+                    handleInputChange("count", newValue);
+                  }}
+                  disabled={
+                    isGenerating ||
+                    (typeof config.count === "number"
+                      ? config.count
+                      : parseInt(config.count.toString()) || 1) >= 1000
+                  }
+                  className="w-4 h-3 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  aria-label="Zwiększ liczbę"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentCount =
+                      typeof config.count === "number" ? config.count : 1;
+                    const newValue = Math.max(currentCount - 1, 1);
+                    handleInputChange("count", newValue);
+                  }}
+                  disabled={
+                    isGenerating ||
+                    (typeof config.count === "number"
+                      ? config.count
+                      : parseInt(config.count.toString()) || 1) <= 1
+                  }
+                  className="w-4 h-3 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  aria-label="Zmniejsz liczbę"
+                >
+                  ▼
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -242,7 +318,11 @@ export default function GeneratorForm({
         <ProbabilityEstimate
           prefix={config.prefix}
           suffix={config.suffix}
-          count={config.count}
+          count={
+            typeof config.count === "number"
+              ? config.count
+              : parseInt(config.count.toString()) || 1
+          }
           ignoreCase={config.ignoreCase}
         />
 
