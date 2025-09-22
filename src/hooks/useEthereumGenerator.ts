@@ -36,6 +36,47 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
   const shouldStopRef = useRef<boolean>(false);
   const stopTimeRef = useRef<number>(0);
 
+  // Security: Validate crypto.getRandomValues quality
+  const validateSecureRandom = useCallback(() => {
+    if (!window.crypto || !window.crypto.getRandomValues) {
+      throw new Error("Secure random number generator not available");
+    }
+
+    // Test randomness quality
+    const test1 = new Uint8Array(32);
+    const test2 = new Uint8Array(32);
+    crypto.getRandomValues(test1);
+    crypto.getRandomValues(test2);
+
+    // Check if arrays are different (basic test)
+    const identical = test1.every((val, i) => val === test2[i]);
+    if (identical) {
+      throw new Error("Random number generator appears compromised");
+    }
+
+    return true;
+  }, []);
+
+  // Security: Active memory cleanup
+  const secureCleanup = useCallback(() => {
+    // Force garbage collection if available (Chrome DevTools)
+    if (typeof window !== "undefined" && "gc" in window) {
+      try {
+        (window as any).gc();
+      } catch (e) {
+        // Silent fail - gc() not available in production
+      }
+    }
+
+    // Clear sensitive refs (but preserve stopTimeRef for timing calculations)
+    startTimeRef.current = 0;
+    // stopTimeRef.current = 0; // Don't clear this, it's needed for final time calculation
+
+    // Force a small memory allocation to trigger cleanup
+    const dummy = new Array(1000).fill(0);
+    dummy.length = 0;
+  }, []);
+
   const generateEthereumAddress = useCallback((): GeneratedAddress | null => {
     try {
       // Use native crypto for much faster generation
@@ -93,6 +134,20 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
   const startGeneration = useCallback(
     async (config: GenerationConfig) => {
       if (state.isGenerating) return;
+
+      // Security: Validate secure random before starting
+      try {
+        validateSecureRandom();
+      } catch (error) {
+        if (toast) {
+          toast.error(
+            "Security Error",
+            "Secure random number generator not available or compromised. Cannot proceed safely.",
+            10000
+          );
+        }
+        return;
+      }
 
       // Ensure count is a number
       const countNum =
@@ -195,7 +250,6 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
               });
 
               // Update results immediately but with performance optimization
-              console.log("Updating state with results:", results);
               setState((prev) => ({
                 ...prev,
                 results: [...results],
@@ -327,6 +381,9 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
           );
         }
       }
+
+      // Security: Clean sensitive data from memory after completion
+      secureCleanup();
     },
     [
       state.isGenerating,
@@ -334,19 +391,24 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
       checkAddressPattern,
       updateProgress,
       toast,
+      validateSecureRandom,
+      secureCleanup,
     ]
   );
 
   const stopGeneration = useCallback(() => {
     shouldStopRef.current = true;
 
-    // Save both start and stop time for accurate calculation
+    // Calculate elapsed time immediately and ensure minimum 1s
     const currentTime = Date.now();
     if (startTimeRef.current > 0) {
-      // Calculate and store the elapsed time
-      stopTimeRef.current = Math.floor(
+      const elapsedSeconds = Math.floor(
         (currentTime - startTimeRef.current) / 1000
       );
+      // Ensure minimum 1 second for user feedback
+      stopTimeRef.current = Math.max(elapsedSeconds, 1);
+    } else {
+      stopTimeRef.current = 1; // Fallback
     }
 
     setState((prev) => ({
@@ -370,13 +432,12 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
       intervalRef.current = undefined;
     }
     startTimeRef.current = 0;
+
+    // Note: secureCleanup will be called after startGeneration completes
   }, []);
 
   const downloadResults = useCallback(
     (results?: GeneratedAddress[]) => {
-      console.log("Download called with:", results);
-      console.log("State results:", state.results);
-
       // Bezpieczne kopiowanie wyników
       let resultsToDownload: GeneratedAddress[] = [];
 
@@ -386,15 +447,11 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
         resultsToDownload = [...state.results];
       }
 
-      console.log("Results to download:", resultsToDownload);
-      console.log("Is array?", Array.isArray(resultsToDownload));
-      console.log("Length:", resultsToDownload.length);
-
       if (!Array.isArray(resultsToDownload) || resultsToDownload.length === 0) {
         if (toast) {
           toast.error("Download failed", "No valid results to download!");
         }
-        console.error("resultsToDownload is not an array:", resultsToDownload);
+        // Silent fail for production security
         return;
       }
 

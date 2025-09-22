@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import GeneratorForm from "@/components/GeneratorForm";
 import ProgressSection from "@/components/ProgressSection";
 import ResultsSection from "@/components/ResultsSection";
+import SecurityMonitor from "@/components/SecurityMonitor";
 import { ToastContainer, useToast } from "@/components/Toast";
 import { GeneratedAddress, GenerationConfig, ProgressStats } from "@/types";
 import { useEthereumGenerator } from "@/hooks/useEthereumGenerator";
@@ -37,6 +38,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Security monitoring - invisible but active */}
+      <SecurityMonitor />
+
       <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
         <div className="space-y-8">
           <Header />
