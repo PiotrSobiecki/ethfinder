@@ -74,8 +74,8 @@ export default function ProbabilityEstimate({
             Pattern Probability Estimate
           </h3>
           <span className="text-sm text-blue-700">
-            ({count} addr{count > 1 ? "s" : ""}: {estimate.difficulty} -{" "}
-            {estimate.estimatedTime})
+            (1 addr: {estimate.difficulty} - {estimate.estimatedTime} for{" "}
+            {count})
           </span>
         </div>
         {isExpanded ? (
@@ -101,7 +101,8 @@ export default function ProbabilityEstimate({
                 1 in {estimate.expectedAttempts.toLocaleString()}
               </p>
               <p className="text-xs text-gray-500">
-                ({(estimate.probability * 100).toExponential(2)}%)
+                per single address (
+                {(estimate.probability * 100).toExponential(2)}%)
               </p>
             </div>
 
@@ -115,7 +116,9 @@ export default function ProbabilityEstimate({
               <p className="text-lg font-bold text-gray-900">
                 {estimate.estimatedTime}
               </p>
-              <p className="text-xs text-gray-500">@ ~1,500 addr/sec</p>
+              <p className="text-xs text-gray-500">
+                for {count} address{count > 1 ? "es" : ""} @ ~1,500/sec
+              </p>
             </div>
 
             <div className="bg-white rounded-lg p-3 border">

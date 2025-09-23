@@ -31,13 +31,10 @@ export function calculateAddressProbability(
   // Expected attempts for finding ONE address = 1 / probability
   const expectedAttemptsPerAddress = Math.round(1 / probability);
 
-  // For multiple addresses, we need to find them sequentially
-  // Each address takes on average the same time to find
-  const totalExpectedAttempts = expectedAttemptsPerAddress * count;
-
-  // Estimate time based on ~1500 addresses/second average speed
-  const addressesPerSecond = 1500;
-  const estimatedSeconds = totalExpectedAttempts / addressesPerSecond;
+  // FIXED: Probability is per single address, regardless of how many we need
+  // Time estimate should be for finding ALL requested addresses, but probability stays the same
+  const estimatedSeconds = expectedAttemptsPerAddress / 1500; // Time for ONE address
+  const totalTimeForAllAddresses = estimatedSeconds * count; // Total time for all addresses
 
   // Format time
   const estimatedTime = formatTime(estimatedSeconds);
@@ -47,8 +44,8 @@ export function calculateAddressProbability(
 
   return {
     probability,
-    expectedAttempts: totalExpectedAttempts,
-    estimatedTime,
+    expectedAttempts: expectedAttemptsPerAddress, // Always for ONE address
+    estimatedTime: formatTime(totalTimeForAllAddresses), // Total time for all
     difficulty,
   };
 }

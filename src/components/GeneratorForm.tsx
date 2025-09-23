@@ -160,46 +160,75 @@ export default function GeneratorForm({
           </div>
         </div>
 
-        {/* Case sensitivity option */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div className="flex items-start space-x-3">
-            <div className="flex items-center h-5">
-              <input
-                id="ignoreCase"
-                type="checkbox"
-                checked={config.ignoreCase}
-                onChange={(e) =>
-                  handleInputChange("ignoreCase", e.target.checked)
-                }
-                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
-                disabled={isGenerating}
-              />
-            </div>
-            <div className="flex-1">
-              <label
-                htmlFor="ignoreCase"
-                className="text-sm font-medium text-gray-700 cursor-pointer"
-              >
-                Ignore case sensitivity
-              </label>
-              <p className="text-xs text-gray-500 mt-1">
-                {(() => {
-                  const example = config.prefix || config.suffix || "C0FFEE";
-                  const mixedCase = example
-                    .split("")
-                    .map((char, i) =>
-                      i % 2 === 0 ? char.toLowerCase() : char.toUpperCase()
-                    )
-                    .join("");
+        {/* Case sensitivity option - conditional rendering */}
+        {(() => {
+          // Check if prefix/suffix contains only digits (0-9)
+          const pattern = (config.prefix + config.suffix).toLowerCase();
+          const hasOnlyDigits = pattern.length > 0 && /^[0-9]*$/.test(pattern);
+          const hasLetters = pattern.length > 0 && /[a-f]/.test(pattern);
 
-                  return config.ignoreCase
-                    ? `✓ Will find "${mixedCase}" when searching for "${example}" (more matches, faster search)`
-                    : `✗ Will only find exact case "${example}" (fewer matches, longer search)`;
-                })()}
-              </p>
-            </div>
-          </div>
-        </div>
+          if (hasOnlyDigits) {
+            // Show info that case sensitivity doesn't apply to digits
+            return (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="text-blue-600">💡</div>
+                  <div className="text-sm text-blue-800">
+                    <strong>Numbers only detected:</strong> Case sensitivity
+                    doesn't apply to digits (0-9)
+                  </div>
+                </div>
+              </div>
+            );
+          } else if (hasLetters || pattern.length === 0) {
+            // Show case sensitivity option for letters or empty pattern
+            return (
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-start space-x-3">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="ignoreCase"
+                      type="checkbox"
+                      checked={config.ignoreCase}
+                      onChange={(e) =>
+                        handleInputChange("ignoreCase", e.target.checked)
+                      }
+                      className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
+                      disabled={isGenerating}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label
+                      htmlFor="ignoreCase"
+                      className="text-sm font-medium text-gray-700 cursor-pointer"
+                    >
+                      Ignore case sensitivity
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(() => {
+                        const example =
+                          config.prefix || config.suffix || "C0FFEE";
+                        const mixedCase = example
+                          .split("")
+                          .map((char, i) =>
+                            i % 2 === 0
+                              ? char.toLowerCase()
+                              : char.toUpperCase()
+                          )
+                          .join("");
+
+                        return config.ignoreCase
+                          ? `✓ Will find "${mixedCase}" when searching for "${example}" (more matches, faster search)`
+                          : `✗ Will only find exact case "${example}" (fewer matches, longer search)`;
+                      })()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
