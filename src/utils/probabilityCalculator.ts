@@ -11,42 +11,50 @@ export interface ProbabilityEstimate {
     | "Extremely Hard";
 }
 
+// Zalozona predkosc generowania. Realna zalezy od maszyny i przegladarki;
+// ta liczba sluzy wylacznie do pokazania rzedu wielkosci przed startem.
+const ASSUMED_ADDRESSES_PER_SECOND = 1500;
+
+// Koszt trafienia w jeden znak wzorca.
+//
+// Adres to ciag hex, wiec sam znak trafia sie z szansa 1/16. Przy dopasowaniu
+// wrazliwym na wielkosc liter dochodzi drugi warunek: suma kontrolna EIP-55
+// musi wylosowac te sama wielkosc, czyli dodatkowe 1/2 - ale wylacznie dla
+// liter a-f, bo cyfry nie maja wariantu wielkosci.
+//
+// Wczesniej bylo tu jedno 22 dla calego alfabetu (10 cyfr + a-f + A-F), co
+// zawyzalo trudnosc wzorcow cyfrowych i zanizalo literowych.
+function combinationsForChar(char: string, ignoreCase: boolean): number {
+  if (ignoreCase) return 16;
+  return /[0-9]/.test(char) ? 16 : 32;
+}
+
 export function calculateAddressProbability(
   prefix: string,
   suffix: string,
   count: number = 1,
   ignoreCase: boolean = false
 ): ProbabilityEstimate {
-  // Choose character set based on case sensitivity setting
-  const hexChars = ignoreCase
-    ? 16 // Case-insensitive: 0-9, a-f (treating A-F same as a-f)
-    : 22; // Case-sensitive: 0-9, a-f, A-F (all distinct)
+  const pattern = prefix + suffix;
 
-  // Calculate total pattern length
-  const totalPatternLength = prefix.length + suffix.length;
+  let combinations = 1;
+  for (const char of pattern) {
+    combinations *= combinationsForChar(char, ignoreCase);
+  }
 
-  // Probability calculation: 1 / (hexChars^patternLength)
-  const probability = 1 / Math.pow(hexChars, totalPatternLength);
+  // Liczba prob potrzebnych srednio na JEDEN pasujacy adres (rozklad
+  // geometryczny: wartosc oczekiwana to 1/p).
+  const expectedAttemptsPerAddress = combinations;
+  const probability = 1 / combinations;
 
-  // Expected attempts for finding ONE address = 1 / probability
-  const expectedAttemptsPerAddress = Math.round(1 / probability);
-
-  // FIXED: Probability is per single address, regardless of how many we need
-  // Time estimate should be for finding ALL requested addresses, but probability stays the same
-  const estimatedSeconds = expectedAttemptsPerAddress / 1500; // Time for ONE address
-  const totalTimeForAllAddresses = estimatedSeconds * count; // Total time for all addresses
-
-  // Format time
-  const estimatedTime = formatTime(estimatedSeconds);
-
-  // Determine difficulty
-  const difficulty = getDifficulty(totalPatternLength);
+  const secondsPerAddress =
+    expectedAttemptsPerAddress / ASSUMED_ADDRESSES_PER_SECOND;
 
   return {
     probability,
-    expectedAttempts: expectedAttemptsPerAddress, // Always for ONE address
-    estimatedTime: formatTime(totalTimeForAllAddresses), // Total time for all
-    difficulty,
+    expectedAttempts: expectedAttemptsPerAddress,
+    estimatedTime: formatTime(secondsPerAddress * count),
+    difficulty: getDifficulty(expectedAttemptsPerAddress),
   };
 }
 
@@ -73,18 +81,21 @@ function formatTime(seconds: number): string {
   }
 }
 
+// Progi odpowiadaja dawnym przedzialom dlugosci wzorca (16^n), ale licza sie
+// teraz od faktycznej liczby prob - dzieki temu wzorzec case-sensitive jest
+// poprawnie oceniany jako trudniejszy od tego samego bez wielkosci liter.
 function getDifficulty(
-  patternLength: number
+  expectedAttempts: number
 ): ProbabilityEstimate["difficulty"] {
-  if (patternLength <= 2) {
+  if (expectedAttempts <= 256) {
     return "Very Easy";
-  } else if (patternLength <= 3) {
+  } else if (expectedAttempts <= 4096) {
     return "Easy";
-  } else if (patternLength <= 4) {
+  } else if (expectedAttempts <= 65536) {
     return "Medium";
-  } else if (patternLength <= 5) {
+  } else if (expectedAttempts <= 1048576) {
     return "Hard";
-  } else if (patternLength <= 6) {
+  } else if (expectedAttempts <= 16777216) {
     return "Very Hard";
   } else {
     return "Extremely Hard";

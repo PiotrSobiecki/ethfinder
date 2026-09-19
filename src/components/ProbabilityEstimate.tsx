@@ -159,9 +159,9 @@ export default function ProbabilityEstimate({
           <div className="text-xs text-blue-700">
             <p>
               💡 <strong>Tip:</strong> Shorter patterns are found much faster.
-              Each additional character makes it ~{ignoreCase ? "16" : "22"}x
-              harder to find (
-              {ignoreCase ? "case-insensitive" : "case-sensitive"})!
+              {ignoreCase
+                ? "Each additional character makes it ~16x harder (case-insensitive)."
+                : "Each additional digit makes it ~16x harder, and each letter ~32x - the EIP-55 checksum case has to match too."}
             </p>
           </div>
         </div>
