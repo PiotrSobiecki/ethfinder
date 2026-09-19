@@ -37,12 +37,37 @@ jobs:
       - name: Build
         run: pnpm run build
 
+  # Obraz bazowy zmienia sie poza lockfile'em, wiec `verify` go nie widzi: bump
+  # node:22 -> node:25 przeszedl tu na zielono i wywalil deploy na corepacku.
+  # Dockerfile dostaje wlasny build, a obraz ma jeszcze odpowiedziec na /health
+  # - samo `docker build` nie zlapaloby bledu w nginx.conf.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build --tag ethfinder:ci .
+
+      - name: Serve check
+        run: |
+          docker run --detach --name ethfinder-ci --publish 3000:3000 ethfinder:ci
+          for _ in $(seq 1 30); do
+            if curl --silent --fail http://localhost:3000/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs ethfinder-ci
+          exit 1
+
   # Dependabot: patch/minor mergujemy sami po zielonym CI, majory zostaja do
   # recznego przejrzenia. Repo nie ma branch protection, wiec `gh pr merge
   # --auto` merguje natychmiast, nie czekajac na testy — stad merge jako
-  # osobny job z `needs: verify`.
+  # osobny job z `needs: [verify, docker]`.
   dependabot-automerge:
-    needs: verify
+    needs: [verify, docker]
     if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:

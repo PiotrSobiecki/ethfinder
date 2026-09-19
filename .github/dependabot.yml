@@ -35,6 +35,11 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "chore(docker)"
+    ignore:
+      # Od node 25 corepacka nie ma w obrazie, a Dockerfile bierze z niego pnpm.
+      # Major wraca do gry, gdy pnpm przestanie zalezec od corepacka.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
     groups:
       docker:
         patterns:
