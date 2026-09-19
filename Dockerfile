@@ -1,5 +1,5 @@
 # Build statycznego eksportu Next.js, serwowany przez nginx.
-FROM node:22-alpine AS base
+FROM node:25-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
