@@ -16,8 +16,6 @@ updates:
       prefix-development: "chore(deps-dev)"
     groups:
       # wszystkie patch/minor w jednym PR; majory zostaja osobno
-      # next zostaje poza grupa mimo overrides w package.json - override
-      # jest pinem rownym biezacej wersji, nie blokuje bumpow patch/minor
       patch-minor:
         patterns:
           - "*"
@@ -25,7 +23,7 @@ updates:
           - "minor"
           - "patch"
 
-  # obrazy bazowe w Dockerfile (node:18-alpine, nginx:alpine)
+  # obrazy bazowe w Dockerfile (node:22-alpine, nginx:alpine)
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
