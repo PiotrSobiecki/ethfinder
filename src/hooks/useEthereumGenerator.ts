@@ -463,36 +463,32 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
     }
   }, []);
 
-  const downloadResults = useCallback(
-    (results?: GeneratedAddress[], summary?: GenerationSummary) => {
-      const resultsToDownload = results ?? state.results ?? [];
+  // Bez parametrow: funkcja idzie prosto w onClick, wiec kazdy argument
+  // opcjonalny dostalby event myszy zamiast wynikow.
+  const downloadResults = useCallback(() => {
+    const resultsToDownload = state.results ?? [];
 
-      if (resultsToDownload.length === 0) {
-        if (toast) {
-          toast.error("Download failed", "No valid results to download!");
-        }
-        return;
-      }
-
-      const content = buildResultsFile(
-        resultsToDownload,
-        summary ?? state.summary
-      );
-
-      triggerDownload(content);
-
-      // Show success message
+    if (resultsToDownload.length === 0) {
       if (toast) {
-        toast.success(
-          "Download completed!",
-          `Successfully downloaded ${resultsToDownload.length} address${
-            resultsToDownload.length > 1 ? "es" : ""
-          } to file.`
-        );
+        toast.error("Download failed", "No valid results to download!");
       }
-    },
-    [state.results, state.summary, toast]
-  );
+      return;
+    }
+
+    const content = buildResultsFile(resultsToDownload, state.summary);
+
+    triggerDownload(content);
+
+    // Show success message
+    if (toast) {
+      toast.success(
+        "Download completed!",
+        `Successfully downloaded ${resultsToDownload.length} address${
+          resultsToDownload.length > 1 ? "es" : ""
+        } to file.`
+      );
+    }
+  }, [state.results, state.summary, toast]);
 
   return {
     isGenerating: state.isGenerating,
