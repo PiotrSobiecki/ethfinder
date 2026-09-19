@@ -1,5 +1,7 @@
 # Build statycznego eksportu Next.js, serwowany przez nginx.
-FROM node:25-alpine AS base
+# Node 25 nie ma juz corepacka w obrazie - major zostaje na 22 (to samo, co
+# weryfikuje CI), dopoki `corepack enable` jest jedynym zrodlem pnpm.
+FROM node:22-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
