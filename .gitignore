@@ -35,6 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Original reference file (not for Next.js build)
-private.ts
-index.html
+# private.ts i index.html to oryginalne pliki referencyjne (konsolowy prototyp
+# i jednoplikowa wersja UI). Sa wersjonowane celowo. Z buildu wyklucza je
+# tsconfig.json, z obrazu Dockera .dockerignore. Wczesniej staly tutaj jako
+# wpisy ignore, co nic nie dawalo - oba pliki sa sledzone przez gita - a
+# sugerowalo, ze nie powinny byc publiczne.

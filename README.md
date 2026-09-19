@@ -36,10 +36,13 @@ A powerful, secure, and fast **Ethereum address generator** with customizable pr
 ## 🔒 Security Features
 
 - **Zero Server Communication**: Keys generated using `crypto.getRandomValues()`
-- **No Network Requests**: Complete offline functionality
+- **No Network Requests**: No analytics, no third-party calls; fonts are
+  self-hosted at build time
 - **Open Source**: Fully auditable codebase
-- **CSP Headers**: Content Security Policy protection
-- **Secure Headers**: X-Frame-Options, X-Content-Type-Options, etc.
+- **Security Headers**: CSP (without `unsafe-eval`), HSTS, `frame-ancestors 'none'`,
+  `nosniff` and `Referrer-Policy`, all served by nginx - see
+  `nginx-security-headers.conf`. They cannot come from the Next.js `metadata`
+  export, which only renders inert `<meta>` tags.
 
 ## 🚀 Tech Stack
 
@@ -58,11 +61,11 @@ A powerful, secure, and fast **Ethereum address generator** with customizable pr
 git clone https://github.com/PiotrSobiecki/ethfinder.git
 cd ethfinder
 
-# Install dependencies
-npm install
+# Install dependencies (pnpm, per "packageManager" in package.json)
+pnpm install
 
 # Run development server
-npm run dev
+pnpm dev
 
 # Open http://localhost:3000
 ```
@@ -70,13 +73,10 @@ npm run dev
 ### Production Build
 
 ```bash
-# Build for production
-npm run build
+# Build for production - output: "export" writes the static site to ./out
+pnpm build
 
-# Export static files
-npm run export
-
-# Serve with nginx or any static server
+# Serve ./out with nginx or any static server
 ```
 
 ### Docker Deployment
@@ -86,7 +86,7 @@ npm run export
 docker build -t ethfinder .
 
 # Run container
-docker run -p 80:80 ethfinder
+docker run -p 3000:3000 ethfinder
 ```
 
 ### Railway Deployment
@@ -109,22 +109,36 @@ No environment variables needed - everything runs client-side!
 
 ## 📊 Performance
 
-- **Batch Processing**: 5,000 addresses per batch
-- **UI Responsiveness**: Non-blocking generation with `setTimeout` yielding
-- **Memory Efficient**: Results streamed to UI, not stored in memory
+- **Batch Processing**: 20,000 addresses per batch
+- **UI Responsiveness**: Yields via `MessageChannel`, which keeps generating
+  while the tab is minimized
+- **Memory**: Matching results stay in React state because the UI has to show
+  them; the random byte buffer each key is derived from is zeroed right after use
 - **Mobile Optimized**: Works smoothly on mobile devices
 
 ## 🔍 Pattern Difficulty Guide
 
-| Characters | Case Sensitive      | Case Insensitive    | Est. Time\*    |
-| ---------- | ------------------- | ------------------- | -------------- |
-| 1 char     | ~22 attempts        | ~16 attempts        | < 1 second     |
-| 2 chars    | ~484 attempts       | ~256 attempts       | < 1 second     |
-| 3 chars    | ~10,648 attempts    | ~4,096 attempts     | 1-5 seconds    |
-| 4 chars    | ~234,256 attempts   | ~65,536 attempts    | 30-120 seconds |
-| 5 chars    | ~5,153,632 attempts | ~1,048,576 attempts | 15-30 minutes  |
+| Characters | Case sensitive (letters) | Case insensitive    | Est. time*          |
+| ---------- | ------------------------ | ------------------- | ------------------- |
+| 1 char     | ~32 attempts             | ~16 attempts        | < 1 second          |
+| 2 chars    | ~1,024 attempts          | ~256 attempts       | < 1 second          |
+| 3 chars    | ~32,768 attempts         | ~4,096 attempts     | 3-25 seconds        |
+| 4 chars    | ~1,048,576 attempts      | ~65,536 attempts    | 45 seconds - 12 min |
+| 5 chars    | ~33,554,432 attempts     | ~1,048,576 attempts | 12 minutes - 6 h    |
 
-\*Times are estimates and vary based on device performance and luck
+Digits have no upper/lower form, so a digit always costs ~16 attempts whether
+or not case sensitivity is on. Only letters a-f pay the extra factor of two,
+for matching the EIP-55 checksum case.
+
+*Times are estimates and vary based on device performance and luck
+
+## 📁 Reference files
+
+`private.ts` and `index.html` are the prototypes this app grew out of: a Node.js
+CLI generator and a single-file HTML version. They are versioned deliberately,
+but excluded from the Next.js build (`tsconfig.json`) and from the Docker image
+(`.dockerignore`). `private.ts` imports `ethereumjs-wallet`, which is not a
+dependency here - install it separately if you want to run it.
 
 ## 🤝 Contributing
 
