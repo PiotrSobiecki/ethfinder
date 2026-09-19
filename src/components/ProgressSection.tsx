@@ -113,9 +113,8 @@ export default function ProgressSection({
                 </h4>
                 <p className="text-sm text-blue-700 mt-1">
                   Advanced background optimization: Using MessageChannel and
-                  adaptive batches ({(20000).toLocaleString()} addresses) to
-                  bypass browser throttling when minimized. Detects window state
-                  for optimal performance. The more specific your requirements,
+                  fixed batches ({(20000).toLocaleString()} addresses) to
+                  bypass browser throttling when minimized. The more specific your requirements,
                   the longer it may take to find matching addresses.
                 </p>
                 {progress.elapsedTime > 0 && progress.checked > 0 && (

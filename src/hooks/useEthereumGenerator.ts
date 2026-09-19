@@ -16,6 +16,72 @@ interface ToastFunctions {
   warning: (title: string, message: string, duration?: number) => void;
 }
 
+type GenerationSummary = NonNullable<EthereumGeneratorState["summary"]>;
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+}
+
+// Poza hookiem celowo: podsumowanie jest przekazywane argumentem, a nie
+// czytane ze stanu. Auto-pobieranie startuje tuz po setState, wiec odczyt
+// state.summary trafialby jeszcze na wartosc z poprzedniego przebiegu.
+function buildResultsFile(
+  results: GeneratedAddress[],
+  summary?: GenerationSummary
+): string {
+  let content = "Ethereum Address Generator - Results\n";
+  content += "====================================\n\n";
+
+  if (summary) {
+    // Generacja ponizej sekundy daje totalTime = 0; bez tego warunku predkosc
+    // wychodzila jako Infinity.
+    const speed =
+      summary.totalTime > 0
+        ? `${Math.round(
+            summary.totalChecked / summary.totalTime
+          ).toLocaleString()} addresses/second`
+        : "n/a (under 1s)";
+
+    content += "GENERATION SUMMARY\n";
+    content += "------------------\n";
+    content += `Search Criteria: ${summary.searchCriteria}\n`;
+    content += `Addresses Found: ${results.length}\n`;
+    content += `Total Addresses Scanned: ${summary.totalChecked.toLocaleString()}\n`;
+    content += `Total Time: ${formatDuration(summary.totalTime)}\n`;
+    content += `Speed: ${speed}\n`;
+    content += `Generated: ${new Date().toLocaleString()}\n\n`;
+    content += "RESULTS\n";
+    content += "-------\n";
+  }
+
+  results.forEach((result) => {
+    if (result && result.address && result.privateKey) {
+      content += `Address ${result.index}: ${result.address}\n`;
+      content += `Private Key ${result.index}: ${result.privateKey}\n\n`;
+    }
+  });
+
+  return content;
+}
+
+function triggerDownload(content: string): void {
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ethereum_addresses_${new Date()
+    .toISOString()
+    .slice(0, 19)
+    .replace(/:/g, "-")}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
 export function useEthereumGenerator(toast?: ToastFunctions) {
   const [state, setState] = useState<EthereumGeneratorState>({
     isGenerating: false,
@@ -57,59 +123,18 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
     return true;
   }, []);
 
-  // Security: Active memory cleanup
+  // Sprzatanie po zakonczeniu generacji.
+  //
+  // Zakres jest ograniczony i warto to wiedziec: klucze prywatne zyja tu jako
+  // stringi w state.results, bo UI musi je pokazac, a stringow w JavaScripcie
+  // nie da sie nadpisac - znikaja dopiero, gdy zbierze je GC. Realnie mozna
+  // wyzerowac tylko bufor bajtow, z ktorego powstaje klucz, i to dzieje sie
+  // przy kazdej iteracji petli (privateKeyBytes.fill(0)). Ta funkcja czysci
+  // juz tylko liczniki czasu.
   const secureCleanup = useCallback(() => {
-    // Force garbage collection if available (Chrome DevTools)
-    if (typeof window !== "undefined" && "gc" in window) {
-      try {
-        (window as any).gc();
-      } catch (e) {
-        // Silent fail - gc() not available in production
-      }
-    }
-
-    // Clear sensitive refs (but preserve stopTimeRef for timing calculations)
+    // stopTimeRef zostaje - jest potrzebny do policzenia koncowego czasu.
     startTimeRef.current = 0;
-    // stopTimeRef.current = 0; // Don't clear this, it's needed for final time calculation
-
-    // Force a small memory allocation to trigger cleanup
-    const dummy = new Array(1000).fill(0);
-    dummy.length = 0;
   }, []);
-
-  const generateEthereumAddress = useCallback((): GeneratedAddress | null => {
-    try {
-      // Use native crypto for much faster generation
-      const privateKeyBytes = new Uint8Array(32);
-      crypto.getRandomValues(privateKeyBytes);
-
-      // Convert to hex string
-      const privateKeyHex = Array.from(privateKeyBytes)
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      // Create wallet from private key for address derivation
-      const wallet = new ethers.Wallet("0x" + privateKeyHex);
-
-      return {
-        index: 0, // Will be set later
-        address: wallet.address,
-        privateKey: privateKeyHex,
-      };
-    } catch (error) {
-      console.error("Address generation error:", error);
-      return null;
-    }
-  }, []);
-
-  const checkAddressPattern = useCallback(
-    (address: string, prefix: string, suffix: string): boolean => {
-      const prefixCheck = !prefix || address.startsWith("0x" + prefix);
-      const suffixCheck = !suffix || address.endsWith(suffix);
-      return prefixCheck && suffixCheck;
-    },
-    []
-  );
 
   const updateProgress = useCallback(
     (found: number, total: number, checked: number) => {
@@ -205,6 +230,10 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
           i < batchSize && found < countNum && checked < maxAttempts;
           i++
         ) {
+          // Stop ma dzialac od razu. Bez tego warunku flaga byla sprawdzana
+          // dopiero miedzy batchami, czyli po 20 000 kolejnych kluczach.
+          if (shouldStopRef.current) break;
+
           try {
             // Ultra-fast inline generation with native crypto
             const privateKeyBytes = new Uint8Array(32);
@@ -213,6 +242,10 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
             const privateKeyHex = Array.from(privateKeyBytes)
               .map((b) => b.toString(16).padStart(2, "0"))
               .join("");
+
+            // Bufor jest juz niepotrzebny - zerujemy go, zeby material klucza
+            // nie zostawal w pamieci dluzej, niz musi.
+            privateKeyBytes.fill(0);
 
             // Use ethers only for address derivation (still fastest option)
             const wallet = new ethers.Wallet("0x" + privateKeyHex);
@@ -306,19 +339,18 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
       const finalElapsedTime = shouldStopRef.current
         ? stopTimeRef.current // Already calculated in stopGeneration
         : Math.floor((Date.now() - startTimeRef.current) / 1000);
-      const formatTime = (seconds: number) => {
-        if (seconds < 60) return `${seconds}s`;
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}m ${secs}s`;
-      };
-
       // Create search criteria description
       const searchCriteria = `${
         config.prefix ? `Prefix: "${config.prefix}"` : ""
       }${config.prefix && config.suffix ? ", " : ""}${
         config.suffix ? `Suffix: "${config.suffix}"` : ""
       }${config.ignoreCase ? " (case-insensitive)" : " (case-sensitive)"}`;
+
+      const summary: GenerationSummary = {
+        totalChecked: checked,
+        totalTime: finalElapsedTime,
+        searchCriteria,
+      };
 
       // Clear interval
       if (intervalRef.current) {
@@ -333,16 +365,22 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
           ...prev.progress,
           isComplete: true,
         },
-        summary: {
-          totalChecked: checked,
-          totalTime: finalElapsedTime,
-          searchCriteria: searchCriteria,
-        },
+        summary,
       }));
 
-      // Auto-download if file mode
+      // Auto-download if file mode. Podsumowanie idzie z lokalnej zmiennej,
+      // bo setState powyzej jeszcze sie nie przeliczyl.
       if (config.outputMode === "file" && results.length > 0) {
-        downloadResults(results);
+        triggerDownload(buildResultsFile(results, summary));
+
+        if (toast) {
+          toast.success(
+            "Download completed!",
+            `Successfully downloaded ${results.length} address${
+              results.length > 1 ? "es" : ""
+            } to file.`
+          );
+        }
       }
 
       // Show informative message about results
@@ -351,7 +389,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
           const action = shouldStopRef.current ? "stopped" : "completed";
           toast.warning(
             `Generation ${action}`,
-            `No addresses found matching the criteria after scanning ${checked.toLocaleString()} addresses in ${formatTime(
+            `No addresses found matching the criteria after scanning ${checked.toLocaleString()} addresses in ${formatDuration(
               finalElapsedTime
             )}.`,
             8000
@@ -362,7 +400,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
           const action = shouldStopRef.current ? "stopped" : "completed";
           toast.info(
             `Generation ${action}`,
-            `Found ${found} out of ${countNum} requested addresses after scanning ${checked.toLocaleString()} addresses in ${formatTime(
+            `Found ${found} out of ${countNum} requested addresses after scanning ${checked.toLocaleString()} addresses in ${formatDuration(
               finalElapsedTime
             )}.`,
             6000
@@ -374,7 +412,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
             "Generation completed!",
             `Successfully found ${found} address${
               found > 1 ? "es" : ""
-            } after scanning ${checked.toLocaleString()} addresses in ${formatTime(
+            } after scanning ${checked.toLocaleString()} addresses in ${formatDuration(
               finalElapsedTime
             )}.`,
             5000
@@ -387,8 +425,6 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
     },
     [
       state.isGenerating,
-      generateEthereumAddress,
-      checkAddressPattern,
       updateProgress,
       toast,
       validateSecureRandom,
@@ -411,95 +447,39 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
       stopTimeRef.current = 1; // Fallback
     }
 
-    setState((prev) => ({
-      ...prev,
-      shouldStop: true,
-      isGenerating: false,
-      results: [], // clear results
-      progress: {
-        found: 0,
-        total: 0,
-        checked: 0,
-        elapsedTime: 0,
-        isComplete: false,
-      },
-      summary: undefined, // clear summary
-    }));
+    // Adresy znalezione do tej pory zostaja na ekranie. Wczesniej ta funkcja
+    // kasowala results, ale petla generujaca wpisywala je z powrotem zaraz po
+    // wyjsciu - netto klucze znikaly i pojawialy sie ponownie. Skoro trafienie
+    // na wzorzec potrafi trwac godziny, czyszczenie wyniku przy Stopie byloby
+    // po prostu utrata danych.
+    setState((prev) => ({ ...prev, shouldStop: true }));
 
-    // Clear timer and reset time reference
+    // Tu zatrzymujemy tylko licznik czasu. Reszte stanu (isGenerating,
+    // podsumowanie) domyka petla, ktora przerwie sie przy najblizszej
+    // iteracji, bo sprawdza shouldStopRef za kazdym obrotem.
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = undefined;
     }
-    startTimeRef.current = 0;
-
-    // Note: secureCleanup will be called after startGeneration completes
   }, []);
 
   const downloadResults = useCallback(
-    (results?: GeneratedAddress[]) => {
-      // Bezpieczne kopiowanie wyników
-      let resultsToDownload: GeneratedAddress[] = [];
+    (results?: GeneratedAddress[], summary?: GenerationSummary) => {
+      const resultsToDownload = results ?? state.results ?? [];
 
-      if (results && Array.isArray(results)) {
-        resultsToDownload = [...results];
-      } else if (state.results && Array.isArray(state.results)) {
-        resultsToDownload = [...state.results];
-      }
-
-      if (!Array.isArray(resultsToDownload) || resultsToDownload.length === 0) {
+      if (resultsToDownload.length === 0) {
         if (toast) {
           toast.error("Download failed", "No valid results to download!");
         }
-        // Silent fail for production security
         return;
       }
 
-      let content = "Ethereum Address Generator - Results\n";
-      content += "====================================\n\n";
+      const content = buildResultsFile(
+        resultsToDownload,
+        summary ?? state.summary
+      );
 
-      // Add summary if available
-      if (state.summary) {
-        const formatTime = (seconds: number) => {
-          if (seconds < 60) return `${seconds}s`;
-          const mins = Math.floor(seconds / 60);
-          const secs = seconds % 60;
-          return `${mins}m ${secs}s`;
-        };
-
-        content += "GENERATION SUMMARY\n";
-        content += "------------------\n";
-        content += `Search Criteria: ${state.summary.searchCriteria}\n`;
-        content += `Addresses Found: ${resultsToDownload.length}\n`;
-        content += `Total Addresses Scanned: ${state.summary.totalChecked.toLocaleString()}\n`;
-        content += `Total Time: ${formatTime(state.summary.totalTime)}\n`;
-        content += `Speed: ${Math.round(
-          state.summary.totalChecked / state.summary.totalTime
-        ).toLocaleString()} addresses/second\n`;
-        content += `Generated: ${new Date().toLocaleString()}\n\n`;
-        content += "RESULTS\n";
-        content += "-------\n";
-      }
-
-      resultsToDownload.forEach((result) => {
-        if (result && result.address && result.privateKey) {
-          content += `Address ${result.index}: ${result.address}\n`;
-          content += `Private Key ${result.index}: ${result.privateKey}\n\n`;
-        }
-      });
-
-      const blob = new Blob([content], { type: "text/plain" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `ethereum_addresses_${new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace(/:/g, "-")}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      triggerDownload(content);
 
       // Show success message
       if (toast) {
@@ -511,7 +491,7 @@ export function useEthereumGenerator(toast?: ToastFunctions) {
         );
       }
     },
-    [state.results, toast]
+    [state.results, state.summary, toast]
   );
 
   return {
