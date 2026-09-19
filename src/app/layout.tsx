@@ -1,9 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ToastProvider } from "@/components/Toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
+// Naglowkow bezpieczenstwa nie da sie ustawic z metadata: Next renderuje je
+// jako <meta name="X-Frame-Options">, a przegladarki czytaja je wylacznie z
+// odpowiedzi HTTP. Realne naglowki ustawia nginx-security-headers.conf.
 export const metadata: Metadata = {
   title: "Ethereum Address Generator",
   description:
@@ -16,8 +20,6 @@ export const metadata: Metadata = {
     "blockchain",
   ],
   authors: [{ name: "Ethereum Address Generator" }],
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#667eea",
   icons: {
     icon: [
       {
@@ -26,16 +28,12 @@ export const metadata: Metadata = {
       },
     ],
   },
-  // Security headers
-  other: {
-    "Cache-Control": "no-cache, no-store, must-revalidate",
-    Pragma: "no-cache",
-    Expires: "0",
-    "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
-    "X-XSS-Protection": "1; mode=block",
-    "Referrer-Policy": "no-referrer",
-  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#667eea",
 };
 
 export default function RootLayout({
@@ -46,9 +44,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-          {children}
-        </div>
+        <ToastProvider>
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+            {children}
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );

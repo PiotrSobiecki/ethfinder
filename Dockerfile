@@ -1,52 +1,37 @@
-# Use the official Node.js 18 image as base
-FROM node:18-alpine AS base
+# Build statycznego eksportu Next.js, serwowany przez nginx.
+FROM node:22-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# Wersja pnpm pochodzi z pola "packageManager" w package.json - jedno zrodlo
+# prawdy wspolne z CI.
+RUN corepack enable
 
-# Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-# Install dependencies
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-# Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm run build
 
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Build and export static files
-RUN npm run build
-
-# Production image with nginx
 FROM nginx:alpine AS runner
 
-# Remove default nginx website
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy the static export from builder stage
+# Wlasna konfiguracja zastepuje domyslna w calosci (nie doklada sie do
+# conf.d), zeby naglowki bezpieczenstwa obowiazywaly dla kazdej odpowiedzi.
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-security-headers.conf /etc/nginx/snippets/security-headers.conf
+
 COPY --from=builder /app/out /usr/share/nginx/html
 
-# Simple nginx config for SPA on port 3000
-RUN echo 'server { \
-    listen 3000; \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ { \
-        expires 1y; \
-        add_header Cache-Control "public, immutable"; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
-
-# Expose port 3000 to match Railway setting
 EXPOSE 3000
 ENV PORT=3000
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
