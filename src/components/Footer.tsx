@@ -71,7 +71,7 @@ export default function Footer() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-3">
-                💡 Notice the address starts with "C0FFEE" - perfect for coffee
+                💡 Notice the address starts with &quot;C0FFEE&quot; - perfect for coffee
                 tips! ☕
               </p>
             </div>

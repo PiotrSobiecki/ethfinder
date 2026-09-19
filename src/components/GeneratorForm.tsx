@@ -100,7 +100,7 @@ export default function GeneratorForm({
               htmlFor="prefix"
               className="block text-sm font-medium text-gray-700"
             >
-              Prefix after "0x" (optional)
+              Prefix after &quot;0x&quot; (optional)
             </label>
             <input
               type="text"
@@ -175,7 +175,7 @@ export default function GeneratorForm({
                   <div className="text-blue-600">💡</div>
                   <div className="text-sm text-blue-800">
                     <strong>Numbers only detected:</strong> Case sensitivity
-                    doesn't apply to digits (0-9)
+                    doesn&apos;t apply to digits (0-9)
                   </div>
                 </div>
               </div>

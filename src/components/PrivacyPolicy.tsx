@@ -63,7 +63,7 @@ export default function PrivacyPolicy({ onClose }: PrivacyPolicyProps) {
               </p>
               <ul className="list-disc list-inside text-gray-700 space-y-2">
                 <li>Runs entirely in your web browser</li>
-                <li>Uses your browser's built-in cryptographic functions</li>
+                <li>Uses your browser&apos;s built-in cryptographic functions</li>
                 <li>Generates addresses and private keys locally</li>
                 <li>
                   Does not require internet connection for core functionality
@@ -80,7 +80,7 @@ export default function PrivacyPolicy({ onClose }: PrivacyPolicyProps) {
               </p>
               <ul className="list-disc list-inside text-gray-700 space-y-2">
                 <li>
-                  Random number generation uses your browser's secure random API
+                  Random number generation uses your browser&apos;s secure random API
                 </li>
                 <li>Private key derivation happens in browser memory</li>
                 <li>Address generation is computed locally</li>
@@ -125,7 +125,7 @@ export default function PrivacyPolicy({ onClose }: PrivacyPolicyProps) {
                   🔐 Security Best Practices:
                 </p>
                 <ul className="list-disc list-inside text-amber-700 mt-2 space-y-1">
-                  <li>Clear your browser's memory/cache after use</li>
+                  <li>Clear your browser&apos;s memory/cache after use</li>
                   <li>Use the application on a secure, private device</li>
                   <li>Do not share generated private keys</li>
                   <li>Store private keys securely offline</li>

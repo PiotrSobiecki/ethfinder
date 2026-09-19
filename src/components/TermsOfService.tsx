@@ -37,8 +37,8 @@ export default function TermsOfService({ onClose }: TermsOfServiceProps) {
                 1. Acceptance of Terms
               </h3>
               <p className="text-gray-700 mb-4">
-                By accessing and using the Ethereum Address Generator ("the
-                Service"), you accept and agree to be bound by the terms and
+                By accessing and using the Ethereum Address Generator
+                (&quot;the Service&quot;), you accept and agree to be bound by the terms and
                 provision of this agreement.
               </p>
             </section>
@@ -87,7 +87,7 @@ export default function TermsOfService({ onClose }: TermsOfServiceProps) {
                 4. Disclaimer of Warranties
               </h3>
               <p className="text-gray-700 mb-4">
-                THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. WE
+                THE SERVICE IS PROVIDED &quot;AS IS&quot; WITHOUT WARRANTY OF ANY KIND. WE
                 DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
                 LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
                 A PARTICULAR PURPOSE.
