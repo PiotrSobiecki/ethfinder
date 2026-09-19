@@ -7,8 +7,8 @@ import GeneratorForm from "@/components/GeneratorForm";
 import ProgressSection from "@/components/ProgressSection";
 import ResultsSection from "@/components/ResultsSection";
 import SecurityMonitor from "@/components/SecurityMonitor";
-import { ToastContainer, useToast } from "@/components/Toast";
-import { GeneratedAddress, GenerationConfig, ProgressStats } from "@/types";
+import { useToast } from "@/components/Toast";
+import { GenerationConfig } from "@/types";
 import { useEthereumGenerator } from "@/hooks/useEthereumGenerator";
 
 export default function Home() {
@@ -20,7 +20,9 @@ export default function Home() {
     ignoreCase: false,
   });
 
-  const { toasts, removeToast, success, error, info, warning } = useToast();
+  // Kontener toastow renderuje ToastProvider w layoucie - tutaj potrzebne jest
+  // tylko API do ich zglaszania.
+  const toast = useToast();
 
   const {
     isGenerating,
@@ -29,7 +31,7 @@ export default function Home() {
     startGeneration,
     stopGeneration,
     downloadResults,
-  } = useEthereumGenerator({ success, error, info, warning });
+  } = useEthereumGenerator(toast);
 
   const handleStartGeneration = (newConfig: GenerationConfig) => {
     setConfig(newConfig);
@@ -64,9 +66,6 @@ export default function Home() {
             )}
           </div>
         </div>
-
-        {/* Toast container at bottom */}
-        <ToastContainer toasts={toasts} onClose={removeToast} />
       </main>
 
       <Footer />

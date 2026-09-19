@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { X, CheckCircle, AlertCircle, Info } from "lucide-react";
 
 export interface ToastMessage {
@@ -20,25 +28,20 @@ function Toast({ toast, onClose }: ToastProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
-  useEffect(() => {
-    // Slide in animation
-    setTimeout(() => setIsVisible(true), 100);
-
-    // Auto close
-    const duration = toast.duration || 5000;
-    const timer = setTimeout(() => {
-      handleClose();
-    }, duration);
-
-    return () => clearTimeout(timer);
-  }, [toast.duration]);
-
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsLeaving(true);
-    setTimeout(() => {
-      onClose(toast.id);
-    }, 300);
-  };
+    setTimeout(() => onClose(toast.id), 300);
+  }, [onClose, toast.id]);
+
+  useEffect(() => {
+    const showTimer = setTimeout(() => setIsVisible(true), 100);
+    const closeTimer = setTimeout(handleClose, toast.duration || 5000);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(closeTimer);
+    };
+  }, [handleClose, toast.duration]);
 
   const getToastStyles = () => {
     switch (toast.type) {
@@ -143,50 +146,66 @@ export function ToastContainer({ toasts, onClose }: ToastContainerProps) {
   );
 }
 
-// Hook for managing toasts
-export function useToast() {
+export interface ToastApi {
+  success: (title: string, message: string, duration?: number) => void;
+  error: (title: string, message: string, duration?: number) => void;
+  info: (title: string, message: string, duration?: number) => void;
+  warning: (title: string, message: string, duration?: number) => void;
+}
+
+// Toasty musza byc wspolnym stanem: SecurityMonitor i strona zglaszaja je
+// niezaleznie, a renderuje je jeden kontener. Wczesniej useToast byl zwyklym
+// useState, wiec kazdy komponent dostawal osobna kolejke i ostrzezenia
+// SecurityMonitora nie pojawialy sie nigdy.
+const ToastContext = createContext<ToastApi | null>(null);
+
+export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const nextId = useRef(0);
 
-  const showToast = (
-    type: ToastMessage["type"],
-    title: string,
-    message: string,
-    duration?: number
-  ) => {
-    const id = Math.random().toString(36).substring(7);
-    const newToast: ToastMessage = {
-      id,
-      type,
-      title,
-      message,
-      duration,
-    };
-
-    setToasts((prev) => [...prev, newToast]);
-  };
-
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
+  }, []);
 
-  const success = (title: string, message: string, duration?: number) =>
-    showToast("success", title, message, duration);
+  const showToast = useCallback(
+    (
+      type: ToastMessage["type"],
+      title: string,
+      message: string,
+      duration?: number
+    ) => {
+      const id = `toast-${nextId.current++}`;
+      setToasts((prev) => [...prev, { id, type, title, message, duration }]);
+    },
+    []
+  );
 
-  const error = (title: string, message: string, duration?: number) =>
-    showToast("error", title, message, duration);
+  const api = useMemo<ToastApi>(
+    () => ({
+      success: (title, message, duration) =>
+        showToast("success", title, message, duration),
+      error: (title, message, duration) =>
+        showToast("error", title, message, duration),
+      info: (title, message, duration) =>
+        showToast("info", title, message, duration),
+      warning: (title, message, duration) =>
+        showToast("warning", title, message, duration),
+    }),
+    [showToast]
+  );
 
-  const info = (title: string, message: string, duration?: number) =>
-    showToast("info", title, message, duration);
+  return (
+    <ToastContext.Provider value={api}>
+      {children}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+    </ToastContext.Provider>
+  );
+}
 
-  const warning = (title: string, message: string, duration?: number) =>
-    showToast("warning", title, message, duration);
-
-  return {
-    toasts,
-    removeToast,
-    success,
-    error,
-    info,
-    warning,
-  };
+export function useToast(): ToastApi {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error("useToast musi byc uzyte wewnatrz <ToastProvider>");
+  }
+  return context;
 }
