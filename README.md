@@ -46,7 +46,7 @@ A powerful, secure, and fast **Ethereum address generator** with customizable pr
 
 ## 🚀 Tech Stack
 
-- **Frontend**: Next.js 14 (App Router), React, TypeScript
+- **Frontend**: Next.js 16 (App Router), React, TypeScript
 - **Styling**: Tailwind CSS with custom components
 - **Crypto**: Ethers.js for address generation
 - **Icons**: Lucide React
